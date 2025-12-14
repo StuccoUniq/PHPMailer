@@ -1,4 +1,176 @@
 <?php
+stucco-offerte/
+│
+├─ stucco-offerte.php
+├─ phpmailer/
+│   ├─ Exception.php
+│   ├─ PHPMailer.php
+│   └─ SMTP.php
+<?php
+/*
+Plugin Name: Stucco Offerte Formulier + FAQ
+Description: Offerteformulier met e-mail via SMTP voor Stucco Uniq inclusief FAQ en styling
+Version: 1.0
+Author: Stucco Uniq
+*/
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require plugin_dir_path(__FILE__) . 'phpmailer/Exception.php';
+require plugin_dir_path(__FILE__) . 'phpmailer/PHPMailer.php';
+require plugin_dir_path(__FILE__) . 'phpmailer/SMTP.php';
+
+function stucco_offerte_form_shortcode() {
+    $form_verzonden = false;
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['stucco_offerte_submit'])) {
+        $naam = strip_tags(trim($_POST["naam"]));
+        $email = filter_var(trim($_POST["email"]), FILTER_SANITIZE_EMAIL);
+        $telefoon = strip_tags(trim($_POST["telefoon"]));
+        $dienst = strip_tags(trim($_POST["dienst"]));
+        $beschrijving = strip_tags(trim($_POST["beschrijving"]));
+
+        $mail = new PHPMailer(true);
+
+        try {
+            // SMTP instellingen
+            $mail->isSMTP();
+            $mail->Host = 'server336.web-hosting.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'info@stuccouniq.nl';
+            $mail->Password = 'Lajos1991!';
+            $mail->SMTPSecure = 'ssl';
+            $mail->Port = 465;
+
+            // E-mail naar jezelf
+            $mail->setFrom('info@stuccouniq.nl', 'Stucco Uniq');
+            $mail->addAddress('info@stuccouniq.nl');
+            $mail->Subject = 'Nieuwe offerte aanvraag - Stucco Uniq';
+            $mail->Body = "Nieuwe offerte aanvraag:\n\nNaam: $naam\nEmail: $email\nTelefoon: $telefoon\nDienst: $dienst\nProjectomschrijving: $beschrijving";
+            $mail->send();
+
+            // Bevestigingsmail naar klant
+            $mail->clearAddresses();
+            $mail->addAddress($email);
+            $mail->Subject = 'Bevestiging offerte aanvraag - Stucco Uniq';
+            $mail->Body = "Beste $naam,\n\nBedankt voor uw offerteaanvraag bij Stucco Uniq.\nWij nemen binnen 24 uur contact met u op.\n\nMet vriendelijke groet,\nStucco Uniq";
+            $mail->send();
+
+            $form_verzonden = true;
+
+        } catch (Exception $e) {
+            error_log("Mailer Error: {$mail->ErrorInfo}");
+        }
+    }
+
+    ob_start();
+    ?>
+
+    <style>
+    .stucco-offerte-container { max-width: 1000px; margin: 3rem auto; padding: 0 1rem; font-family: 'Inter', Arial, sans-serif; }
+    .cta-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem; }
+    .cta-box { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex: 1 1 400px; padding: 2rem; display: flex; flex-direction: column; transition: transform 0.2s; }
+    .cta-box:hover { transform: translateY(-5px); }
+    .cta-box h2 { color: #1e3a8a; margin-bottom: 1rem; font-size: 1.5rem; }
+    .cta-box p { margin-bottom: 1.5rem; color: #555; }
+    .cta-box form { display: flex; flex-direction: column; gap: 1rem; }
+    .cta-box input, .cta-box textarea, .cta-box select { padding: 0.75rem; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem; width: 100%; }
+    .cta-box button { background: #1e3a8a; color: white; border: none; padding: 0.75rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .cta-box button:hover { background: #15315c; }
+    .form-message { margin-top: 1rem; font-size: 1rem; color: #1e3a8a; font-weight: bold; }
+
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { color: #1e3a8a; margin-bottom: 1rem; font-size: 1.8rem; }
+    .faq-item { background: white; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); padding: 1rem; }
+    .faq-item h3 { margin: 0 0 0.5rem 0; font-size: 1.2rem; color: #1e3a8a; }
+    .faq-item p { margin: 0; color: #555; }
+
+    @media (max-width: 768px) { .cta-container { flex-direction: column; align-items: center; } }
+    </style>
+
+    <div class="stucco-offerte-container">
+
+        <header>
+            <h1>Vraag een vrijblijvende offerte aan</h1>
+            <p>Stucco Uniq levert professioneel stucwerk, schilderwerk, spackspuiten, beton ciré, cinewalls en renovlies in Zuid-Nederland. Vul het formulier in en ontvang snel een vrijblijvende offerte.</p>
+        </header>
+
+        <div class="cta-container">
+            <div class="cta-box">
+                <h2>Offerte aanvragen</h2>
+                <p>Vul uw gegevens in en ontvang een vrijblijvende prijsopgave voor uw project. Wij adviseren over de beste oplossing en planning.</p>
+                <form method="post">
+                    <input type="text" name="naam" placeholder="Uw naam" required>
+                    <input type="email" name="email" placeholder="Uw e-mail" required>
+                    <input type="tel" name="telefoon" placeholder="Telefoonnummer" required>
+                    <select name="dienst" required>
+                        <option value="" disabled selected>Kies een dienst</option>
+                        <option value="stucwerk">Stucwerk</option>
+                        <option value="schilderwerk">Schilderwerk</option>
+                        <option value="spackspuiten">Spackspuiten</option>
+                        <option value="beton_cire">Beton Ciré</option>
+                        <option value="cinewall">Cinewall</option>
+                        <option value="renovlies">Renovlies</option>
+                    </select>
+                    <textarea name="beschrijving" placeholder="Projectomschrijving" rows="4" required></textarea>
+                    <button type="submit" name="stucco_offerte_submit">Vrijblijvende offerte aanvragen</button>
+                </form>
+                <?php if ($form_verzonden): ?>
+                    <div class="form-message">Uw offerteaanvraag is verzonden. Wij nemen binnen 24 uur contact met u op.</div>
+                <?php endif; ?>
+            </div>
+
+            <div class="cta-box">
+                <h2>Waarom Stucco Uniq?</h2>
+                <ul style="color: #555; padding-left: 1.2rem;">
+                    <li>✅ Professionele uitvoering in Zuid-Nederland</li>
+                    <li>✅ Voor woningen en bedrijfspanden</li>
+                    <li>✅ Snelle en duidelijke offerte</li>
+                    <li>✅ Hoogwaardige materialen en technieken</li>
+                    <li>✅ Vakkundige en ervaren specialisten</li>
+                </ul>
+                <p>Wij staan garant voor een strak en duurzaam resultaat, volledig afgestemd op uw wensen en interieurstijl.</p>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2>Veelgestelde vragen over offerte aanvragen</h2>
+
+            <div class="faq-item">
+                <h3>Hoe snel ontvang ik een offerte voor stucwerk?</h3>
+                <p>Na het invullen van het formulier nemen wij binnen 24 uur contact op met een vrijblijvende offerte afgestemd op uw project.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>Kan ik ook een offerte aanvragen voor schilderwerk?</h3>
+                <p>Ja, u kunt elk van onze diensten kiezen in het formulier, inclusief binnen- en buitenschilderwerk, en ontvangt een gedetailleerde prijsopgave.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>Bieden jullie offertes voor spackspuiten en latex spuiten aan?</h3>
+                <p>Ja, voor spackspuiten, latex spuiten en alle muurafwerkingen sturen wij een vrijblijvende offerte op maat.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>Hoe werkt een offerte voor beton ciré of renovlies?</h3>
+                <p>Vul het formulier in, vermeld de gewenste dienst en projectomschrijving. Wij sturen een duidelijke prijsopgave inclusief advies en planning.</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>Ontvang ik een bevestiging na het aanvragen van een offerte?</h3>
+                <p>Ja, u ontvangt automatisch een e-mail met een overzicht van uw aanvraag zodra u het formulier heeft verzonden.</p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <?php
+    return ob_get_clean();
+}
+
+add_shortcode('stucco_offerte_form', 'stucco_offerte_form_shortcode');
 
 /**
  * PHPMailer - PHP email creation and transport class.
